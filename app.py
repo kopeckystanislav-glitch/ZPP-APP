@@ -1,43 +1,36 @@
-# -*- coding: utf-8 -*-
+
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 
-# Načíst data
-modules = pd.read_csv('data/modules.csv')  
-submodules = pd.read_csv('data/submodules.csv')
-checklist_items = pd.read_csv('data/checklist_items.csv')
+st.set_page_config(page_title="ZPP - Vyšetřovatel požárů", layout="wide")
+st.title("🔥 Aplikace pro vyšetřovatele požárů")
+
+# Načtení modulů
 try:
-    reports = pd.read_csv('data/reports.csv')
+    modules = pd.read_csv("modules.csv", sep=";")
 except FileNotFoundError:
-    reports = pd.DataFrame(columns=['report_id','user_email','sub_id','timestamp','notes','photo_url'])
+    st.error("Soubor 'modules.csv' nebyl nalezen.")
+    st.stop()
 
-# --- DEBUG: výpis sloupců -------------
-st.write("Columns in modules:", modules.columns.tolist())
-st.write("Columns in submodules:", submodules.columns.tolist())
-# ------------------------------------
+# Zobrazení sloupců pro debug
+st.sidebar.header("📁 Sloupce v modules.csv:")
+st.sidebar.write(list(modules.columns))
 
-# Přihlášení uživatele
-st.sidebar.title("Uživatel")
-user_email = st.sidebar.text_input("Zadej svůj email:", "")
+# Kontrola přítomnosti potřebných sloupců
+required_columns = {"module_id", "name", "icon", "type"}
+if not required_columns.issubset(modules.columns):
+    st.error(f"Soubor 'modules.csv' musí obsahovat sloupce: {required_columns}")
+    st.stop()
 
 # Výběr modulu
-st.title("Aplikace pro vyšetřovatele požárů")
-module_choice = st.radio("Vyber modul:", modules['name'])
-module_id = modules.loc[modules['name'] == module_choice, 'module_id'].iloc[0]
+modules["label"] = modules["icon"] + " " + modules["name"]
+selected_label = st.radio("🧭 Vyber modul:", modules["label"])
 
-# Zobrazení podmodulů
-st.header(f"Podmoduly pro {module_choice}")
-# Filtrujeme submodules podle module_id
-subs = submodules[submodules['module_id'] == module_id]
-for _, row in subs.iterrows():
-    st.subheader(row['name'])
-    if row['type'] == 'info':
-        st.info(f"Info sekce pro {row['name']}.")
-    elif row['type'] == 'form':
-        if st.button(f"Otevřít {row['name']}"):
-            if row['name'] == 'Checklist':
-                st.write("Zde bude formulář pro Checklist.")
-            elif row['name'] == 'Report':
-                st.write("Zde bude formulář pro Report.")
+# Zobrazení zvoleného modulu podle module_id
+selected_row = modules[modules["label"] == selected_label].iloc[0]
+selected_module_id = selected_row["module_id"]
 
+st.success(f"✅ Vybral jsi modul: {selected_row['name']} (ID: {selected_module_id})")
+
+# Pro budoucí rozšíření (např. výběr submodulů nebo formulář)
+st.info("Zde může následovat formulář nebo detailní rozpad podle vybraného modulu.")
